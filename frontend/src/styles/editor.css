@@ -1,0 +1,564 @@
+/* Editor content area styles */
+.editor-content .tiptap {
+  outline: none;
+  min-height: 600px;
+  font-family: "DM Sans", sans-serif;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #0F172A;
+}
+
+.editor-content .tiptap > * + * {
+  margin-top: 0.5em;
+}
+
+/* ===== PandaDoc-style editable block boxes ===== */
+
+.editor-content .tiptap > * {
+  position: relative;
+  border: 1px dashed #e2e8f0;
+  border-radius: 4px;
+  padding: 6px 10px;
+  margin-bottom: 4px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+  cursor: text;
+}
+
+.editor-content .tiptap > *:hover,
+.editor-content .tiptap > *.block-hovered {
+  border-color: #93c5fd;
+  border-style: solid;
+  background-color: rgba(219, 234, 254, 0.06);
+}
+
+.editor-content .tiptap > .ProseMirror-selectednode,
+.editor-content .tiptap > *:focus-within {
+  border-color: #818cf8;
+  border-style: solid;
+  box-shadow: 0 0 0 2px rgba(129, 140, 248, 0.12);
+  background-color: rgba(224, 231, 255, 0.06);
+}
+
+/* Minimize empty paragraph blocks — thin insertion zones */
+.editor-content .tiptap > p:not(:has(span)):not(:has(img)):not(.is-editor-empty) {
+  border-color: transparent;
+  padding: 2px 10px;
+  min-height: 4px;
+}
+
+.editor-content .tiptap > p:not(:has(span)):not(:has(img)):not(.is-editor-empty):hover {
+  border-color: #cbd5e1;
+  border-style: dashed;
+}
+
+.editor-content .tiptap > table:hover,
+.editor-content .tiptap > table.block-hovered {
+  border-color: #93c5fd;
+  border-style: solid;
+}
+
+/* ===== Drag handle ===== */
+
+.block-handle {
+  position: absolute;
+  left: -28px;
+  width: 20px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  cursor: grab;
+  color: #a1a1aa;
+  opacity: 0;
+  transition: opacity 0.15s ease, background-color 0.1s ease, color 0.1s ease;
+  z-index: 50;
+  user-select: none;
+}
+
+.block-handle:hover {
+  background: #f4f4f5;
+  color: #52525b;
+}
+
+.block-handle:active {
+  cursor: grabbing;
+  background: #e4e4e7;
+  color: #3f3f46;
+}
+
+/* ===== Drop indicator ===== */
+
+.block-drop-indicator {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #3b82f6;
+  border-radius: 2px;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 200;
+  transition: opacity 0.1s ease;
+}
+
+.block-drop-indicator::before {
+  content: "";
+  position: absolute;
+  left: -4px;
+  top: -3px;
+  width: 8px;
+  height: 8px;
+  background: #3b82f6;
+  border-radius: 50%;
+}
+
+/* ===== Plus insert button ===== */
+
+.block-plus-button {
+  position: absolute;
+  left: -28px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  cursor: pointer;
+  color: #a1a1aa;
+  background: white;
+  border: 1px solid #e4e4e7;
+  opacity: 0;
+  transition: opacity 0.15s ease, background-color 0.1s ease, color 0.1s ease, transform 0.1s ease;
+  z-index: 50;
+}
+
+.block-plus-button:hover {
+  background: #818cf8;
+  border-color: #818cf8;
+  color: white;
+  transform: scale(1.1);
+}
+
+/* ===== Block action menu ===== */
+
+.block-action-menu {
+  position: absolute;
+  left: -140px;
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  background: white;
+  border: 1px solid #e4e4e7;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.06);
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(4px);
+  transition: opacity 0.12s ease, transform 0.12s ease;
+}
+
+.block-action-menu.visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(0);
+}
+
+.block-action-menu button {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: #71717a;
+  cursor: pointer;
+  transition: background-color 0.1s, color 0.1s;
+}
+
+.block-action-menu button:hover {
+  background: #f4f4f5;
+  color: #18181b;
+}
+
+.block-action-menu button[data-action="delete"]:hover {
+  background: #fef2f2;
+  color: #ef4444;
+}
+
+/* ===== Document Sections (Header / Footer / TOC) ===== */
+
+.editor-content .tiptap .doc-section {
+  position: relative;
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+}
+
+.editor-content .tiptap .doc-section[data-section-type="header"] {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid #cbd5e1;
+  border-left: 4px solid #3b82f6;
+}
+
+.editor-content .tiptap .doc-section[data-section-type="header"]::before {
+  content: "HEADER";
+  position: absolute;
+  top: -9px;
+  left: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: #3b82f6;
+  background: #f8fafc;
+  padding: 0 6px;
+}
+
+.editor-content .tiptap .doc-section[data-section-type="footer"] {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 1px solid #cbd5e1;
+  border-left: 4px solid #64748b;
+  margin-top: 16px;
+}
+
+.editor-content .tiptap .doc-section[data-section-type="footer"]::before {
+  content: "FOOTER";
+  position: absolute;
+  top: -9px;
+  left: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  background: #f8fafc;
+  padding: 0 6px;
+}
+
+.editor-content .tiptap .doc-section[data-section-type="toc"] {
+  background: linear-gradient(135deg, #fefce8 0%, #fef9c3 100%);
+  border: 1px solid #d4b896;
+  border-left: 4px solid #ca8a04;
+  padding: 16px 20px;
+}
+
+.editor-content .tiptap .doc-section[data-section-type="toc"]::before {
+  content: "TABLE OF CONTENTS";
+  position: absolute;
+  top: -9px;
+  left: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: #ca8a04;
+  background: #fefce8;
+  padding: 0 6px;
+}
+
+/* Reset inner block styling inside sections */
+.editor-content .tiptap .doc-section > * {
+  border: none !important;
+  padding: 2px 0 !important;
+  margin-bottom: 2px !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+
+.editor-content .tiptap .doc-section img {
+  margin: 4px 0;
+}
+
+/* TOC entries styling */
+.editor-content .tiptap .doc-section[data-section-type="toc"] p {
+  cursor: pointer;
+  padding: 2px 4px !important;
+  border-radius: 3px;
+  transition: background-color 0.1s ease;
+}
+
+.editor-content .tiptap .doc-section[data-section-type="toc"] p:hover {
+  background-color: rgba(202, 138, 4, 0.08) !important;
+}
+
+/* ===== Page canvas / positioned images ===== */
+
+.editor-content .tiptap .page-canvas {
+  position: relative;
+  width: 100%;
+  min-height: 900px;
+  border: 1px dashed #cbd5e1;
+  background:
+    linear-gradient(to right, rgba(148, 163, 184, 0.08) 1px, transparent 1px) 0 0 / 16px 16px,
+    linear-gradient(to bottom, rgba(148, 163, 184, 0.08) 1px, transparent 1px) 0 0 / 16px 16px,
+    #f8fafc;
+  overflow: hidden;
+}
+
+.editor-content .tiptap .positioned-image-node {
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.75);
+}
+
+.editor-content .tiptap .positioned-image-node:hover {
+  border-color: #60a5fa;
+}
+
+.editor-content .tiptap .positioned-image-drag {
+  position: absolute;
+  top: 0;
+  right: 16px;
+  bottom: 16px;
+  left: 0;
+  cursor: move;
+  z-index: 1;
+}
+
+.editor-content .tiptap .positioned-image-resize {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  right: 0;
+  bottom: 0;
+  border-radius: 3px;
+  border: 1px solid #1d4ed8;
+  background: #60a5fa;
+  cursor: nwse-resize;
+  z-index: 3;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.editor-content .tiptap .positioned-image-lock {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  z-index: 2;
+  border: 1px solid #cbd5e1;
+  background: rgba(255, 255, 255, 0.95);
+  color: #334155;
+  border-radius: 4px;
+  font-size: 11px;
+  padding: 1px 6px;
+}
+
+/* Headings — keep structural spacing only; let DOCX inline styles drive fonts/colors */
+.editor-content .tiptap h1 {
+  font-size: 2.25em;
+  font-weight: 700;
+  line-height: 1.2;
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+.editor-content .tiptap h2 {
+  font-size: 1.75em;
+  font-weight: 600;
+  line-height: 1.25;
+  margin-top: 1.3em;
+  margin-bottom: 0.4em;
+}
+
+.editor-content .tiptap h3 {
+  font-size: 1.35em;
+  font-weight: 600;
+  line-height: 1.3;
+  margin-top: 1.2em;
+  margin-bottom: 0.3em;
+}
+
+.editor-content .tiptap h4,
+.editor-content .tiptap h5,
+.editor-content .tiptap h6 {
+  font-size: 1.1em;
+  font-weight: 600;
+  line-height: 1.4;
+  margin-top: 1em;
+  margin-bottom: 0.25em;
+}
+
+/* Paragraphs */
+.editor-content .tiptap p {
+  margin-bottom: 0.5em;
+}
+
+.editor-content .tiptap p.is-empty::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #a8a29e;
+  pointer-events: none;
+  height: 0;
+  font-style: italic;
+}
+
+/* Links */
+.editor-content .tiptap a {
+  color: #F97066;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Lists */
+.editor-content .tiptap ul {
+  list-style-type: disc;
+  padding-left: 1.5em;
+  margin: 0.5em 0;
+}
+
+.editor-content .tiptap ol {
+  list-style-type: decimal;
+  padding-left: 1.5em;
+  margin: 0.5em 0;
+}
+
+.editor-content .tiptap li {
+  margin: 0.15em 0;
+}
+
+.editor-content .tiptap li > p {
+  margin: 0;
+}
+
+/* Blockquote */
+.editor-content .tiptap blockquote {
+  border-left: 3px solid #F97066;
+  padding-left: 1em;
+  margin: 1em 0;
+  color: #57534e;
+  font-style: italic;
+}
+
+/* Code */
+.editor-content .tiptap code {
+  background: #f5f5f4;
+  border-radius: 4px;
+  padding: 0.15em 0.4em;
+  font-size: 0.9em;
+  font-family: "JetBrains Mono", "Fira Code", monospace;
+  color: #F97066;
+}
+
+.editor-content .tiptap pre {
+  background: #1e293b;
+  color: #e2e8f0;
+  border-radius: 8px;
+  padding: 1em 1.25em;
+  margin: 1em 0;
+  overflow-x: auto;
+  font-size: 0.85em;
+  line-height: 1.6;
+}
+
+.editor-content .tiptap pre code {
+  background: none;
+  color: inherit;
+  padding: 0;
+  border-radius: 0;
+  font-size: inherit;
+}
+
+/* Tables */
+.editor-content .tiptap table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1em 0;
+  overflow: hidden;
+  border-radius: 4px;
+  border: 1px solid #e7e5e4;
+}
+
+.editor-content .tiptap th,
+.editor-content .tiptap td {
+  border: 1px solid #e7e5e4;
+  padding: 0.5em 0.75em;
+  text-align: left;
+  vertical-align: top;
+  min-width: 80px;
+}
+
+.editor-content .tiptap th {
+  font-weight: 600;
+  font-size: 0.85em;
+}
+
+.editor-content .tiptap td {
+  /* Let DOCX inline background-color take effect; only default if none set */
+}
+
+/* Selected cell highlight */
+.editor-content .tiptap .selectedCell {
+  background: #fef2f2 !important;
+}
+
+/* Table resize handle */
+.editor-content .tiptap .column-resize-handle {
+  position: absolute;
+  right: -2px;
+  top: 0;
+  bottom: -2px;
+  width: 4px;
+  background: #F97066;
+  cursor: col-resize;
+}
+
+/* Images */
+.editor-content .tiptap img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+  margin: 0.75em 0;
+}
+
+.editor-content .tiptap img.ProseMirror-selectednode {
+  outline: 2px solid #F97066;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Horizontal rule */
+.editor-content .tiptap hr {
+  border: none;
+  border-top: 2px solid #e7e5e4;
+  margin: 1.5em 0;
+}
+
+/* Comment highlights */
+.comment-highlight {
+  background-color: #FEF3C7;
+  border-bottom: 2px solid #F59E0B;
+  padding: 1px 0;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.comment-highlight:hover {
+  background-color: #FDE68A;
+}
+
+.comment-highlight.active {
+  background-color: #FDE68A;
+  border-bottom-color: #F97066;
+}
+
+/* Selection styles */
+.editor-content .tiptap ::selection {
+  background: #dbeafe;
+}
+
+/* Task lists */
+.editor-content .tiptap ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0;
+}
+
+.editor-content .tiptap ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5em;
+}
+
+.editor-content .tiptap ul[data-type="taskList"] li > label {
+  margin-top: 0.15em;
+}

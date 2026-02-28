@@ -19,6 +19,7 @@ import { BlockId } from "./block-id";
 import { BlockHandle } from "./block-handle";
 import { CommentMark } from "./comment-mark";
 import { DocSection } from "./doc-section";
+import { HeadingId } from "./heading-id";
 import { PageCanvas } from "./page-canvas";
 import { PositionedImage } from "./positioned-image";
 
@@ -46,4 +47,5 @@ export const editorExtensions = [
   BlockHandle,
   CommentMark,
   DocSection,
+  HeadingId,
 ];

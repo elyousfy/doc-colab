@@ -344,6 +344,58 @@
   padding: 1px 6px;
 }
 
+/* ===== Block image with 8-direction resize handles ===== */
+
+.image-block-wrapper {
+  position: relative;
+  display: inline-block;
+  max-width: 100%;
+  user-select: none;
+}
+
+.image-block-wrapper img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+
+/* Show handles only when selected */
+.image-resize-handle {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: #3b82f6;
+  border: 2px solid white;
+  border-radius: 2px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10;
+  transition: opacity 0.1s ease;
+}
+
+.image-selected .image-resize-handle {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Position each handle */
+.image-resize-n  { top: -5px;  left: 50%; transform: translateX(-50%); cursor: n-resize;  }
+.image-resize-ne { top: -5px;  right: -5px; cursor: ne-resize; }
+.image-resize-e  { top: 50%;  right: -5px; transform: translateY(-50%); cursor: e-resize;  }
+.image-resize-se { bottom: -5px; right: -5px; cursor: se-resize; }
+.image-resize-s  { bottom: -5px; left: 50%; transform: translateX(-50%); cursor: s-resize;  }
+.image-resize-sw { bottom: -5px; left: -5px; cursor: sw-resize; }
+.image-resize-w  { top: 50%;  left: -5px; transform: translateY(-50%); cursor: w-resize;  }
+.image-resize-nw { top: -5px;  left: -5px; cursor: nw-resize; }
+
+/* Selected border */
+.image-selected img {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
 /* Headings — keep structural spacing only; let DOCX inline styles drive fonts/colors */
 .editor-content .tiptap h1 {
   font-size: 2.25em;

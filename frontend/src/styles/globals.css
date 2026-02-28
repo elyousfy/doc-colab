@@ -1,0 +1,386 @@
+@import "tailwindcss";
+@import "./editor.css";
+
+@theme {
+  --font-display: "Instrument Serif", serif;
+  --font-body: "DM Sans", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
+
+  /* Core palette */
+  --color-navy: #0F172A;
+  --color-midnight: #111318;
+  --color-paper: #F4F1EA;
+  --color-canvas: #E6E2D8;
+  --color-coral: #F97066;
+  --color-coral-light: #FEF2F2;
+
+  /* UI surfaces */
+  --color-surface: #FFFFFF;
+  --color-border: rgba(15, 23, 42, 0.08);
+  --color-border-strong: rgba(15, 23, 42, 0.14);
+
+  /* Text hierarchy */
+  --color-text-primary: #0F172A;
+  --color-text-secondary: #64748B;
+  --color-text-muted: #94A3B8;
+}
+
+/* ── Base ── */
+body {
+  font-family: var(--font-body);
+  background-color: var(--color-paper);
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Editor canvas background — warm dot grid ── */
+.editor-canvas {
+  background-color: var(--color-canvas);
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(15, 23, 42, 0.07) 1.5px, transparent 0);
+  background-size: 20px 20px;
+}
+
+/* ── Floating document page ── */
+.editor-document-page {
+  background: #fff;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 8px 24px rgba(0, 0, 0, 0.06),
+    0 32px 64px rgba(0, 0, 0, 0.06),
+    0 0 0 1px rgba(0, 0, 0, 0.04);
+  border-radius: 2px;
+  min-height: 1056px;
+  transition: box-shadow 0.2s ease;
+}
+
+.editor-document-page:focus-within {
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.04),
+    0 8px 24px rgba(0, 0, 0, 0.08),
+    0 32px 80px rgba(0, 0, 0, 0.08),
+    0 0 0 1px rgba(0, 0, 0, 0.06);
+}
+
+/* ── App header (dark chrome) ── */
+.app-header {
+  height: 3.5rem;
+  background: var(--color-midnight);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.5rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.app-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  color: white;
+  transition: opacity 0.15s ease;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+
+.app-logo:hover {
+  opacity: 0.75;
+}
+
+.app-logo-icon {
+  color: var(--color-coral);
+}
+
+.app-logo-name {
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  letter-spacing: -0.01em;
+  color: white;
+}
+
+/* ── Editor sub-header (toolbar row) ── */
+.editor-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.375rem 0.875rem;
+  background: #FAFAF8;
+  border-bottom: 1px solid var(--color-border-strong);
+  position: sticky;
+  top: 3.5rem;
+  z-index: 50;
+}
+
+/* ── Toolbar refinements ── */
+.editor-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0;
+}
+
+/* ── Status bar ── */
+.editor-statusbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.3rem 1rem;
+  background: white;
+  border-top: 1px solid var(--color-border);
+  font-size: 0.7rem;
+  color: var(--color-text-muted);
+  letter-spacing: 0.02em;
+}
+
+.editor-statusbar .save-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.editor-statusbar .save-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+  animation: pulse-dot 2s infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(0.85); }
+}
+
+/* ── Document list page ── */
+.doc-list-hero {
+  padding: 3rem 0 2rem;
+}
+
+.doc-list-title {
+  font-family: var(--font-display);
+  font-size: 2.75rem;
+  line-height: 1.1;
+  color: var(--color-navy);
+  letter-spacing: -0.02em;
+}
+
+.doc-list-subtitle {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  margin-top: 0.5rem;
+}
+
+/* Doc cards */
+.doc-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.875rem 1rem;
+  background: white;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease, transform 0.1s ease;
+  position: relative;
+}
+
+.doc-card:hover {
+  border-color: rgba(249, 112, 102, 0.3);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05), 0 0 0 2px rgba(249, 112, 102, 0.08);
+  transform: translateY(-1px);
+}
+
+.doc-card:active {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.doc-card-icon {
+  width: 40px;
+  height: 48px;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #FEF2F2 0%, #FFF 60%);
+  border: 1px solid rgba(249, 112, 102, 0.15);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.doc-card-icon::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 6px;
+  height: 6px;
+  border-radius: 1px;
+  background: rgba(249, 112, 102, 0.3);
+}
+
+/* Action buttons */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1.125rem;
+  background: var(--color-navy);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.12s ease, transform 0.1s ease;
+  letter-spacing: 0.01em;
+}
+
+.btn-primary:hover {
+  background: #1e293b;
+  transform: translateY(-1px);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1.125rem;
+  background: white;
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-strong);
+  border-radius: 8px;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.12s ease, border-color 0.12s ease;
+  letter-spacing: 0.01em;
+}
+
+.btn-secondary:hover {
+  background: #F8F8F8;
+  border-color: rgba(15, 23, 42, 0.2);
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.625rem;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  transition: background-color 0.1s ease, color 0.1s ease;
+  white-space: nowrap;
+}
+
+.btn-ghost:hover {
+  background: rgba(15, 23, 42, 0.05);
+  color: var(--color-text-primary);
+}
+
+.btn-ghost.active {
+  background: var(--color-coral);
+  color: white;
+}
+
+.btn-ghost.active:hover {
+  background: #e85d53;
+}
+
+/* ── Upload progress overlay ── */
+.upload-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  color: #166534;
+  margin-bottom: 1.25rem;
+}
+
+.upload-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid #86efac;
+  border-top-color: #16a34a;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  flex-shrink: 0;
+}
+
+.error-banner {
+  padding: 0.75rem 1rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  font-size: 0.8125rem;
+  color: #b91c1c;
+  margin-bottom: 1.25rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── User switcher in dark header ── */
+.user-switcher-dark select {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.8);
+  border-radius: 6px;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.8125rem;
+  font-family: var(--font-body);
+  cursor: pointer;
+  transition: background-color 0.1s ease;
+}
+
+.user-switcher-dark select:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.user-switcher-dark select option {
+  background: #1e293b;
+  color: white;
+}
+
+/* ── Page fade-in animation ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-up {
+  animation: fadeUp 0.3s ease forwards;
+}
+
+/* ── Parser select ── */
+.parser-select {
+  padding: 0.5rem 0.75rem;
+  background: white;
+  border: 1px solid var(--color-border-strong);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-family: var(--font-body);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}

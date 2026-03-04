@@ -22,6 +22,7 @@ import { DocSection } from "./doc-section";
 import { HeadingId } from "./heading-id";
 import { PageCanvas } from "./page-canvas";
 import { PositionedImage } from "./positioned-image";
+import { PageBreak } from "./page-break";
 
 export const editorExtensions = [
   StarterKit.configure({ heading: { levels: [1, 2, 3, 4, 5, 6] } }),
@@ -48,4 +49,5 @@ export const editorExtensions = [
   CommentMark,
   DocSection,
   HeadingId,
+  PageBreak,
 ];

@@ -1,4 +1,4 @@
-import { mergeAttributes, NodeViewRenderer } from "@tiptap/core";
+import { mergeAttributes } from "@tiptap/core";
 import Image from "@tiptap/extension-image";
 
 const HANDLE_DIRS = ["n", "ne", "e", "se", "s", "sw", "w", "nw"] as const;
@@ -11,7 +11,7 @@ function parseNumeric(value: string | null): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
-const makeNodeView: NodeViewRenderer = ({ node, getPos, editor }) => {
+const makeNodeView = ({ node, getPos, editor }: any) => {
   const wrapper = document.createElement("div");
   wrapper.className = "image-block-wrapper";
 
@@ -20,7 +20,7 @@ const makeNodeView: NodeViewRenderer = ({ node, getPos, editor }) => {
   img.alt = node.attrs.alt || "";
   if (node.attrs.title) img.title = node.attrs.title;
   if (node.attrs.width) img.style.width = `${node.attrs.width}px`;
-  if (node.attrs.height) img.style.height = `${node.attrs.height}px`;
+  img.style.height = "auto"; // never force height — preserves natural aspect ratio
 
   wrapper.appendChild(img);
 
@@ -63,27 +63,17 @@ const makeNodeView: NodeViewRenderer = ({ node, getPos, editor }) => {
       const dx = ev.clientX - startX;
       const dy = ev.clientY - startY;
       let newW = startW;
-      let newH = startH;
 
+      // Derive width from whichever axis is being dragged
       if (dir.includes("e")) newW = startW + dx;
-      if (dir.includes("w")) newW = startW - dx;
-      if (dir.includes("s")) newH = startH + dy;
-      if (dir.includes("n")) newH = startH - dy;
-
-      if (ev.shiftKey && startW && startH) {
-        // Preserve aspect ratio: pick the larger change
-        if (Math.abs(newW - startW) >= Math.abs(newH - startH)) {
-          newH = newW / ratio;
-        } else {
-          newW = newH * ratio;
-        }
-      }
+      else if (dir.includes("w")) newW = startW - dx;
+      else if (dir.includes("s")) newW = startW + dy * ratio;
+      else if (dir.includes("n")) newW = startW - dy * ratio;
 
       newW = Math.max(MIN, Math.round(newW));
-      newH = Math.max(MIN, Math.round(newH));
 
       img.style.width = `${newW}px`;
-      img.style.height = `${newH}px`;
+      img.style.height = "auto"; // always maintain natural aspect ratio
     };
 
     const onUp = (ev: MouseEvent) => {
@@ -91,13 +81,13 @@ const makeNodeView: NodeViewRenderer = ({ node, getPos, editor }) => {
       document.removeEventListener("mouseup", onUp);
 
       const newW = Math.max(MIN, img.offsetWidth);
-      const newH = Math.max(MIN, img.offsetHeight);
 
       const pos = typeof getPos === "function" ? getPos() : null;
       if (pos == null) return;
+      // Only persist width — height stays auto to preserve aspect ratio
       editor.chain()
         .setNodeSelection(pos)
-        .updateAttributes("image", { width: newW, height: newH })
+        .updateAttributes("image", { width: newW, height: null })
         .run();
     };
 
@@ -114,7 +104,7 @@ const makeNodeView: NodeViewRenderer = ({ node, getPos, editor }) => {
       img.alt = updatedNode.attrs.alt || "";
       if (updatedNode.attrs.title) img.title = updatedNode.attrs.title;
       img.style.width = updatedNode.attrs.width ? `${updatedNode.attrs.width}px` : "";
-      img.style.height = updatedNode.attrs.height ? `${updatedNode.attrs.height}px` : "";
+      img.style.height = "auto"; // never force height
       return true;
     },
 

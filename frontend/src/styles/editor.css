@@ -342,13 +342,34 @@
   padding: 1px 6px;
 }
 
-/* ===== Block image with 8-direction resize handles ===== */
+/* ===== Block image — editorial framed exhibit with 8-direction resize ===== */
 
 .image-block-wrapper {
   position: relative;
-  display: inline-block;
+  display: block;
   max-width: 100%;
+  width: fit-content;
+  margin: 2em auto;
   user-select: none;
+  /* White mat frame */
+  background: #fff;
+  border-radius: 8px;
+  padding: 6px;
+  box-shadow:
+    0 2px 8px rgba(15, 23, 42, 0.08),
+    0 8px 28px rgba(15, 23, 42, 0.07),
+    0 20px 60px rgba(15, 23, 42, 0.05),
+    0 0 0 1px rgba(15, 23, 42, 0.08);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.image-block-wrapper:hover {
+  box-shadow:
+    0 4px 12px rgba(15, 23, 42, 0.1),
+    0 16px 40px rgba(15, 23, 42, 0.1),
+    0 32px 80px rgba(15, 23, 42, 0.07),
+    0 0 0 1px rgba(15, 23, 42, 0.1);
+  transform: translateY(-1px);
 }
 
 .image-block-wrapper img {
@@ -356,17 +377,27 @@
   max-width: 100%;
   height: auto;
   border-radius: 4px;
+  /* No inline outline — handled by selected wrapper */
 }
 
-/* Show handles only when selected */
+/* Selected: blue frame replaces the white mat */
+.image-selected {
+  box-shadow:
+    0 4px 16px rgba(59, 130, 246, 0.2),
+    0 16px 48px rgba(59, 130, 246, 0.12),
+    0 0 0 2px #3b82f6;
+  transform: translateY(-1px);
+}
+
+/* Resize handles — appear on select */
 .image-resize-handle {
   position: absolute;
-  width: 10px;
-  height: 10px;
+  width: 9px;
+  height: 9px;
   background: #3b82f6;
   border: 2px solid white;
   border-radius: 2px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
   opacity: 0;
   pointer-events: none;
   z-index: 10;
@@ -378,21 +409,15 @@
   pointer-events: auto;
 }
 
-/* Position each handle */
-.image-resize-n  { top: -5px;  left: 50%; transform: translateX(-50%); cursor: n-resize;  }
-.image-resize-ne { top: -5px;  right: -5px; cursor: ne-resize; }
-.image-resize-e  { top: 50%;  right: -5px; transform: translateY(-50%); cursor: e-resize;  }
-.image-resize-se { bottom: -5px; right: -5px; cursor: se-resize; }
-.image-resize-s  { bottom: -5px; left: 50%; transform: translateX(-50%); cursor: s-resize;  }
-.image-resize-sw { bottom: -5px; left: -5px; cursor: sw-resize; }
-.image-resize-w  { top: 50%;  left: -5px; transform: translateY(-50%); cursor: w-resize;  }
-.image-resize-nw { top: -5px;  left: -5px; cursor: nw-resize; }
-
-/* Selected border */
-.image-selected img {
-  outline: 2px solid #3b82f6;
-  outline-offset: 2px;
-}
+/* Handle positions (offset accounts for 6px padding on the wrapper) */
+.image-resize-n  { top: -4px;   left: 50%;  transform: translateX(-50%); cursor: n-resize; }
+.image-resize-ne { top: -4px;   right: -4px; cursor: ne-resize; }
+.image-resize-e  { top: 50%;   right: -4px; transform: translateY(-50%); cursor: e-resize; }
+.image-resize-se { bottom: -4px; right: -4px; cursor: se-resize; }
+.image-resize-s  { bottom: -4px; left: 50%;  transform: translateX(-50%); cursor: s-resize; }
+.image-resize-sw { bottom: -4px; left: -4px; cursor: sw-resize; }
+.image-resize-w  { top: 50%;   left: -4px;  transform: translateY(-50%); cursor: w-resize; }
+.image-resize-nw { top: -4px;   left: -4px;  cursor: nw-resize; }
 
 /* Headings — keep structural spacing only; let DOCX inline styles drive fonts/colors */
 .editor-content .tiptap h1 {
@@ -509,62 +534,120 @@
   font-size: inherit;
 }
 
-/* Tables */
+/* ===== Tables — classic Word-style grid ===== */
 .editor-content .tiptap table {
   border-collapse: collapse;
+  table-layout: auto;
   width: 100%;
-  margin: 1em 0;
-  overflow: hidden;
-  border-radius: 4px;
-  border: 1px solid #e7e5e4;
+  max-width: 100%;
+  margin: 1.5em 0;
+  font-size: 0.78em;
+  line-height: 1.4;
+  border: 1px solid #000;
 }
 
-.editor-content .tiptap th,
-.editor-content .tiptap td {
-  border: 1px solid #e7e5e4;
-  padding: 0.5em 0.75em;
-  text-align: left;
+/* All cells: uniform visible grid border */
+.editor-content .tiptap table td,
+.editor-content .tiptap table th {
+  border: 1px solid #000;
+  padding: 0.3em 0.55em;
   vertical-align: top;
-  min-width: 80px;
+  min-width: 40px;
+  word-break: break-word;
+  background: #fff;
+  color: #000;
 }
 
-.editor-content .tiptap th {
-  font-weight: 600;
-  font-size: 0.85em;
+/* Header row: light grey background, bold */
+.editor-content .tiptap table tr:first-child td,
+.editor-content .tiptap table tr:first-child th {
+  background: #D9D9D9;
+  font-weight: 700;
+  color: #000;
 }
 
-.editor-content .tiptap td {
-  /* Let DOCX inline background-color take effect; only default if none set */
-}
-
-/* Selected cell highlight */
+/* Selected cell */
 .editor-content .tiptap .selectedCell {
-  background: #fef2f2 !important;
+  background-color: rgba(59, 130, 246, 0.15) !important;
+  outline: 2px solid #3b82f6;
+  outline-offset: -1px;
 }
 
-/* Table resize handle */
+/* Column resize handle */
 .editor-content .tiptap .column-resize-handle {
   position: absolute;
   right: -2px;
   top: 0;
   bottom: -2px;
-  width: 4px;
-  background: #F97066;
+  width: 3px;
+  background: #3b82f6;
   cursor: col-resize;
+  opacity: 0;
+  transition: opacity 0.15s ease;
 }
 
-/* Images */
-.editor-content .tiptap img {
+.editor-content .tiptap table:hover .column-resize-handle {
+  opacity: 1;
+}
+
+/* ===== Images — editorial framed exhibit style ===== */
+
+/* Fallback for non-NodeView images */
+.editor-content .tiptap img:not(.image-block-wrapper img) {
+  display: block;
   max-width: 100%;
   height: auto;
-  border-radius: 4px;
-  margin: 0.75em 0;
+  margin: 1.75em auto;
+  border-radius: 6px;
+  border: 4px solid #fff;
+  box-shadow:
+    0 2px 8px rgba(15, 23, 42, 0.08),
+    0 8px 28px rgba(15, 23, 42, 0.07),
+    0 0 0 1px rgba(15, 23, 42, 0.08);
 }
 
 .editor-content .tiptap img.ProseMirror-selectednode {
-  outline: 2px solid #F97066;
-  outline-offset: 2px;
-  border-radius: 4px;
+  outline: 2px solid #3b82f6;
+  outline-offset: 4px;
+}
+
+/* ===== PDF Page Break Markers ===== */
+.editor-content .tiptap .page-break-marker {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 1.5em 0;
+  user-select: none;
+  cursor: default;
+  border: none !important;
+  background: none !important;
+  padding: 0 !important;
+}
+
+.editor-content .tiptap .page-break-marker::before,
+.editor-content .tiptap .page-break-marker::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: repeating-linear-gradient(
+    90deg,
+    rgba(100, 116, 139, 0.4) 0,
+    rgba(100, 116, 139, 0.4) 4px,
+    transparent 4px,
+    transparent 8px
+  );
+}
+
+.editor-content .tiptap .page-break-label {
+  font-size: 0.7em;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(100, 116, 139, 0.6);
+  white-space: nowrap;
+  padding: 0.15em 0.5em;
+  border: 1px dashed rgba(100, 116, 139, 0.3);
+  border-radius: 3px;
 }
 
 /* Horizontal rule */

@@ -53,6 +53,7 @@ body {
   border-radius: 2px;
   min-height: 1056px;
   transition: box-shadow 0.2s ease;
+  overflow-x: hidden;
 }
 
 .editor-document-page:focus-within {

@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Colab Doc** is a collaborative document editor with:
 - A **FastAPI** backend (`backend/`) that stores documents as JSON files on disk
 - A **React + TypeScript** frontend (`frontend/`) built with Vite, using Tiptap as the rich-text editor
-- Document import from DOCX/PDF/etc. via two parsers: a legacy `python-docx` parser and a `docling`-based parser
+- Document import from DOCX/PDF/etc. via `docling`; DOCX files also get color enrichment via `python-docx`
 - Export to DOCX, version history, image upload/storage, and threaded comments
 
 ## Running the Project
@@ -39,7 +39,7 @@ The Vite dev server proxies `/api/*` to `http://localhost:8003`.
 All API endpoints are in `backend/app/routers/`:
 - `auth.py` — reads `X-User-Id` header; users are hardcoded demo accounts in `storage.py`
 - `documents.py` — CRUD for documents and version content
-- `upload.py` — file import with parser selection (`auto`/`legacy`/`docling`)
+- `upload.py` — file import via Docling; applies color enrichment for DOCX
 - `export.py` — DOCX export via `docx_builder.py`
 - `images.py` — serve stored images
 - `comments.py` — threaded comments per document
@@ -52,12 +52,12 @@ All API endpoints are in `backend/app/routers/`:
 
 ### Document Parsing Pipeline
 
-`upload.py` resolves the parser strategy:
-- **`legacy`**: `services/docx_parser.py` (python-docx, DOCX only)
-- **`docling`**: `services/docling_parser.py` (uses Docling for PDF, DOCX, PPTX, images, etc.)
-- **`hybrid`** (auto-selected for DOCX): runs both parsers — takes legacy header/footer sections + docling body + merged image canvas
+All uploads go through `services/docling_parser.py` (Docling — handles PDF, DOCX, PPTX, images, etc.). For `.docx` files, `services/color_enricher.py` is also run to enrich text colors using `python-docx`.
 
-Both parsers produce **Tiptap JSON** (`{"type": "doc", "content": [...]}`) and a list of image dicts `{filename, data, mime_type}`. Image `src` values use the placeholder prefix `__IMAGE__{filename}` which `upload.py` rewrites to real `/api/documents/{id}/images/{filename}` URLs before saving.
+- DOCX/PPTX: uses `doc.export_to_markdown()` → parsed into Tiptap JSON
+- PDF and other formats: uses `doc.export_to_dict()` with provenance-sorted blocks (preserves page order + images)
+
+The parser produces **Tiptap JSON** (`{"type": "doc", "content": [...]}`) and a list of image dicts `{filename, data, mime_type}`. Image `src` values use the placeholder prefix `__IMAGE__{filename}` which `upload.py` rewrites to real `/api/documents/{id}/images/{filename}` URLs before saving.
 
 ### Frontend
 

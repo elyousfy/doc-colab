@@ -68,7 +68,6 @@ export function BlockEditor({ documentId, toolbar, headerLeft, headerRight, side
   }
 
   const toolbarContent = toolbar === true ? <EditorToolbar editor={editor} /> : toolbar;
-  const hasHeaderExtras = headerLeft != null || headerRight != null;
 
   return (
     <div className="flex flex-col h-full flex-1 min-w-0">

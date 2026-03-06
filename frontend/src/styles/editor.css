@@ -189,77 +189,87 @@
 
 /* ===== Document Sections (Header / Footer / TOC) ===== */
 
-.editor-content .tiptap .doc-section {
-  position: relative;
-  border-radius: 6px;
-  padding: 12px 16px;
-  margin-bottom: 8px;
-}
-
+/* Header zone — Word-style: sits above body content, separated by dashed line */
 .editor-content .tiptap .doc-section[data-section-type="header"] {
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border: 1px solid #cbd5e1;
-  border-left: 4px solid #3b82f6;
+  position: relative;
+  padding: 8px 0 10px;
+  margin-bottom: 0;
+  border-bottom: 1px dashed #aaa;
 }
 
-.editor-content .tiptap .doc-section[data-section-type="header"]::before {
-  content: "HEADER";
+.editor-content .tiptap .doc-section[data-section-type="header"]::after {
+  content: "Header";
   position: absolute;
-  top: -9px;
-  left: 12px;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  color: #3b82f6;
-  background: #f8fafc;
-  padding: 0 6px;
+  bottom: -9px;
+  right: 0;
+  font-size: 9px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  color: #999;
+  background: #fff;
+  padding: 0 4px;
+  font-style: italic;
 }
 
+/* Footer zone — Word-style: sits below body content, separated by dashed line */
 .editor-content .tiptap .doc-section[data-section-type="footer"] {
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  border: 1px solid #cbd5e1;
-  border-left: 4px solid #64748b;
-  margin-top: 16px;
+  position: relative;
+  padding: 10px 0 8px;
+  margin-top: 0;
+  border-top: 1px dashed #aaa;
 }
 
 .editor-content .tiptap .doc-section[data-section-type="footer"]::before {
-  content: "FOOTER";
+  content: "Footer";
   position: absolute;
   top: -9px;
-  left: 12px;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.05em;
-  color: #64748b;
-  background: #f8fafc;
-  padding: 0 6px;
+  right: 0;
+  font-size: 9px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  color: #999;
+  background: #fff;
+  padding: 0 4px;
+  font-style: italic;
 }
 
+/* Header/footer text inherits body font but slightly smaller */
+.editor-content .tiptap .doc-section[data-section-type="header"] p,
+.editor-content .tiptap .doc-section[data-section-type="footer"] p {
+  font-size: 0.82em;
+  color: #555;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* TOC zone */
 .editor-content .tiptap .doc-section[data-section-type="toc"] {
-  background: linear-gradient(135deg, #fefce8 0%, #fef9c3 100%);
+  position: relative;
   border: 1px solid #d4b896;
   border-left: 4px solid #ca8a04;
+  background: #fefce8;
+  border-radius: 4px;
   padding: 16px 20px;
+  margin-bottom: 8px;
 }
 
 .editor-content .tiptap .doc-section[data-section-type="toc"]::before {
-  content: "TABLE OF CONTENTS";
+  content: "Table of Contents";
   position: absolute;
   top: -9px;
   left: 12px;
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 600;
   letter-spacing: 0.05em;
   color: #ca8a04;
   background: #fefce8;
   padding: 0 6px;
+  font-style: italic;
 }
 
 /* Reset inner block styling inside sections */
 .editor-content .tiptap .doc-section > * {
   border: none !important;
-  padding: 2px 0 !important;
-  margin-bottom: 2px !important;
   box-shadow: none !important;
   background: transparent !important;
 }
@@ -268,7 +278,7 @@
   margin: 4px 0;
 }
 
-/* TOC entries styling */
+/* TOC entries */
 .editor-content .tiptap .doc-section[data-section-type="toc"] p {
   cursor: pointer;
   padding: 2px 4px !important;

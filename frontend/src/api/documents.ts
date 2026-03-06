@@ -17,9 +17,6 @@ export interface Version {
   created_at: number;
 }
 
-export type UploadParser = "auto" | "legacy" | "docling";
-export type ParserUsed = "legacy" | "docling" | "hybrid";
-
 export const documentsApi = {
   list: () => apiFetch<DocMeta[]>("/api/documents"),
   get: (id: string) => apiFetch<DocMeta>(`/api/documents/${id}`),
@@ -42,26 +39,12 @@ export const documentsApi = {
     apiFetch<{ content: unknown; meta: Version }>(
       `/api/documents/${id}/versions/${versionId}`
     ),
-  upload: (file: File, parser: UploadParser = "auto") => {
+  upload: (file: File) => {
     const form = new FormData();
     form.append("file", file);
-    return apiFetch<{ id: string; title: string; parser_used: ParserUsed; images_count: number }>(
-      `/api/documents/upload?parser=${parser}`,
-      {
-        method: "POST",
-        body: form,
-      }
-    );
-  },
-  uploadWithDocling: (file: File) => {
-    const form = new FormData();
-    form.append("file", file);
-    return apiFetch<{ id: string; title: string; parser_used: ParserUsed; images_count: number }>(
-      "/api/documents/upload-docling",
-      {
-      method: "POST",
-      body: form,
-      }
+    return apiFetch<{ id: string; title: string; images_count: number }>(
+      "/api/documents/upload",
+      { method: "POST", body: form }
     );
   },
   exportDocx: async (id: string) => {

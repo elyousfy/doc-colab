@@ -20,6 +20,3 @@ async def list_users():
     return storage.get_users()
 
 
-@router.get("/users/me")
-async def get_me(request: Request):
-    return get_current_user(request)

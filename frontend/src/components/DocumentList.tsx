@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { documentsApi, type DocMeta, type UploadParser } from "../api/documents";
+import { documentsApi, type DocMeta } from "../api/documents";
 import { Upload, Plus, FileText, Trash2, Clock } from "lucide-react";
 import { useUserStore } from "../stores/userStore";
 
@@ -12,7 +12,6 @@ export function DocumentList({ onOpenDocument }: DocumentListProps) {
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const [uploadParser, setUploadParser] = useState<UploadParser>("auto");
   const fileRef = useRef<HTMLInputElement>(null);
   const currentUser = useUserStore((s) => s.currentUser);
 
@@ -35,7 +34,7 @@ export function DocumentList({ onOpenDocument }: DocumentListProps) {
     setUploadError(null);
     setUploading(true);
     try {
-      const result = await documentsApi.upload(file, uploadParser);
+      const result = await documentsApi.upload(file);
       onOpenDocument(result.id);
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Upload failed. Please try again.";
@@ -93,17 +92,6 @@ export function DocumentList({ onOpenDocument }: DocumentListProps) {
           <Upload size={15} />
           {uploading ? "Uploading…" : "Upload"}
         </button>
-        <select
-          value={uploadParser}
-          onChange={(e) => setUploadParser(e.target.value as UploadParser)}
-          disabled={uploading}
-          className="parser-select"
-          title="Parser strategy"
-        >
-          <option value="auto">Auto</option>
-          <option value="docling">Docling</option>
-          <option value="legacy">Legacy DOCX</option>
-        </select>
         <input
           ref={fileRef}
           type="file"

@@ -2,7 +2,6 @@ import { apiFetch } from "./client";
 
 export interface Comment {
   id: string;
-  doc_id: string;
   thread_id: string | null;
   anchor: { blockId?: string; from?: number; to?: number };
   author_id: string;

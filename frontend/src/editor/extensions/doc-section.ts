@@ -1,4 +1,4 @@
-import { Node, mergeAttributes, Extension } from "@tiptap/core";
+import { Node, mergeAttributes } from "@tiptap/core";
 import { Plugin, PluginKey } from "@tiptap/pm/state";
 
 function normText(s: string): string {

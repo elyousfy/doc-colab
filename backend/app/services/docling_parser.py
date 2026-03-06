@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import base64
-import io
 import os
 import re
 import tempfile
@@ -31,7 +30,9 @@ _NO_PROV_EXTENSIONS = {".docx", ".doc", ".pptx", ".ppt"}
 def parse_with_docling(file_bytes: bytes, filename: str) -> tuple[dict, list[dict]]:
     """Convert an arbitrary file with Docling and map to Tiptap blocks."""
     try:
-        from docling.document_converter import DocumentConverter
+        from docling.document_converter import DocumentConverter, PdfFormatOption
+        from docling.datamodel.pipeline_options import PdfPipelineOptions
+        from docling.datamodel.base_models import InputFormat
     except ImportError as exc:
         raise RuntimeError(
             "Docling is not installed. Install backend dependencies to enable Docling import."
@@ -43,7 +44,14 @@ def parse_with_docling(file_bytes: bytes, filename: str) -> tuple[dict, list[dic
         tmp_path = tmp.name
 
     try:
-        converter = DocumentConverter()
+        pipeline_options = PdfPipelineOptions()
+        pipeline_options.generate_picture_images = True
+        pipeline_options.images_scale = 2.0
+        converter = DocumentConverter(
+            format_options={
+                InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options),
+            }
+        )
         result = converter.convert(tmp_path)
         doc = result.document
     finally:
@@ -52,14 +60,27 @@ def parse_with_docling(file_bytes: bytes, filename: str) -> tuple[dict, list[dic
         except OSError:
             pass
 
-    # DOCX/PPTX: use docling's own markdown export — it already handles equation
-    # fragments, subscripts, and text concatenation correctly.
     if suffix in _NO_PROV_EXTENSIONS:
-        return _tiptap_via_markdown(doc)
+        doc_json, images = _tiptap_via_markdown(doc)
+        header_blocks, footer_blocks, hf_images = _extract_docx_header_footer(file_bytes)
+        images = hf_images + images
+        content = doc_json["content"]
+        if header_blocks:
+            content.insert(0, {
+                "type": "docSection",
+                "attrs": {"blockId": _block_id(), "sectionType": "header"},
+                "content": header_blocks,
+            })
+        if footer_blocks:
+            content.append({
+                "type": "docSection",
+                "attrs": {"blockId": _block_id(), "sectionType": "footer"},
+                "content": footer_blocks,
+            })
+        return doc_json, images
 
-    # PDF and other formats: use provenance-sorted path (preserves page order + images)
     data = doc.export_to_dict()
-    return _tiptap_via_prov(data)
+    return _tiptap_via_prov(data, doc=doc)
 
 
 # ---------------------------------------------------------------------------
@@ -71,13 +92,13 @@ _MD_TABLE_ROW_RE = re.compile(r"^\|.*\|$")
 _MD_TABLE_SEP_RE = re.compile(r"^\|[\s\-:|]+\|$")
 _MD_LIST_RE = re.compile(r"^[\-\*\+]\s+(.+)$")
 _MD_IMG_RE = re.compile(r"!\[[^\]]*\]\([^\)]*\)")
+_MD_STANDALONE_IMG_RE = re.compile(r"^!\[[^\]]*\]\(([^\)]*)\)\s*$")
 _TOC_PAGE_NUM_RE = re.compile(r"[\t ]{2,}\d{1,4}\s*$")
 _MD_BOLD_RE = re.compile(r"\*\*(.+?)\*\*")
 _MD_ITALIC_RE = re.compile(r"\*(.+?)\*")
 
 
 def _strip_toc_page_number(text: str) -> str:
-    """Strip trailing page-number from TOC lines (e.g. 'Section title   3' → 'Section title')."""
     return _TOC_PAGE_NUM_RE.sub("", text).rstrip()
 
 
@@ -90,17 +111,16 @@ def _md_inline_to_nodes(text: str) -> list[dict]:
     while text:
         bm = _MD_BOLD_RE.search(text)
         im = _MD_ITALIC_RE.search(text)
-        # Use whichever match starts earliest; prefer bold if tied
         if bm and (not im or bm.start() <= im.start()):
             if bm.start() > 0:
                 nodes.append({"type": "text", "text": text[: bm.start()]})
             nodes.append({"type": "text", "text": bm.group(1), "marks": [{"type": "bold"}]})
-            text = text[bm.end() :]
+            text = text[bm.end():]
         elif im:
             if im.start() > 0:
                 nodes.append({"type": "text", "text": text[: im.start()]})
             nodes.append({"type": "text", "text": im.group(1), "marks": [{"type": "italic"}]})
-            text = text[im.end() :]
+            text = text[im.end():]
         else:
             nodes.append({"type": "text", "text": text})
             break
@@ -113,7 +133,6 @@ def _md_parse_table(table_lines: list[str]) -> dict | None:
     rows: list[dict] = []
     for line in table_lines:
         parts = [c.strip() for c in line.split("|")]
-        # Remove leading/trailing empty strings from outer pipes
         if parts and not parts[0]:
             parts = parts[1:]
         if parts and not parts[-1]:
@@ -134,19 +153,77 @@ def _md_parse_table(table_lines: list[str]) -> dict | None:
     return {"type": "table", "attrs": {"blockId": _block_id()}, "content": rows}
 
 
-def _tiptap_via_markdown(doc) -> tuple[dict, list[dict]]:
-    """Build Tiptap JSON from docling's markdown export.
+def _make_image_node(src: str, pictures: list, pic_idx: int, doc, images: list) -> dict | None:
+    """Create a Tiptap image node from a markdown image src, extracting blob and dimensions."""
+    blob = None
+    mime = "image/png"
 
-    Docling's export_to_markdown() already handles equation fragment merging,
-    subscript concatenation, and reading-order reconstruction — so we use it
-    directly instead of reimplementing that logic via iterate_items().
-    """
+    if src.startswith("data:") and ";base64," in src:
+        header, b64_data = src.split(";base64,", 1)
+        mime = header.replace("data:", "").strip() or "image/png"
+        try:
+            blob = base64.b64decode(b64_data)
+        except Exception:
+            pass
+
+    if blob is None and pic_idx < len(pictures):
+        try:
+            pic = pictures[pic_idx]
+            uri = str(pic.image.uri) if pic.image else ""
+            if uri.startswith("data:") and ";base64," in uri:
+                header, b64_data = uri.split(";base64,", 1)
+                mime = header.replace("data:", "").strip() or "image/png"
+                blob = base64.b64decode(b64_data)
+        except Exception:
+            pass
+
+    if not blob:
+        return None
+
+    ext = _MIME_EXT.get(mime, ".png")
+    filename = f"docling_img_{len(images)}{ext}"
+    images.append({"filename": filename, "data": blob, "mime_type": mime})
+
+    attrs: dict = {
+        "blockId": _block_id(),
+        "src": f"__IMAGE__{filename}",
+        "alt": "",
+        "title": None,
+    }
+
+    if pic_idx < len(pictures):
+        try:
+            pic = pictures[pic_idx]
+            prov_list = pic.prov or []
+            if prov_list:
+                prov = prov_list[0]
+                page = (doc.pages or {}).get(prov.page_no)
+                if page and page.size and page.size.width:
+                    bbox = prov.bbox.to_top_left_origin(page_height=page.size.height)
+                    w_frac = (bbox.r - bbox.l) / float(page.size.width)
+                    if 0 < w_frac <= 1:
+                        attrs["width"] = round(w_frac * 816)
+        except Exception:
+            pass
+
+    return {"type": "image", "attrs": attrs}
+
+
+def _tiptap_via_markdown(doc) -> tuple[dict, list[dict]]:
+    """Build Tiptap JSON from docling's markdown export (DOCX/PPTX path)."""
     try:
-        md_text = doc.export_to_markdown()
+        from docling_core.types.doc import ImageRefMode
+        md_text = doc.export_to_markdown(image_mode=ImageRefMode.EMBEDDED)
     except Exception:
-        # Emergency fallback: use the prov-based path
-        data = doc.export_to_dict()
-        return _tiptap_via_prov(data)
+        try:
+            md_text = doc.export_to_markdown()
+        except Exception:
+            data = doc.export_to_dict()
+            return _tiptap_via_prov(data, doc=doc)
+
+    pictures = list(getattr(doc, "pictures", []))
+    pic_idx = 0
+    images: list[dict] = []
 
     lines = md_text.split("\n")
     blocks: list[dict] = []
@@ -155,12 +232,21 @@ def _tiptap_via_markdown(doc) -> tuple[dict, list[dict]]:
     while i < len(lines):
         stripped = lines[i].strip()
 
-        # Empty line — skip
         if not stripped:
             i += 1
             continue
 
-        # Heading: # / ## / ...
+        # Standalone image
+        sim = _MD_STANDALONE_IMG_RE.match(stripped)
+        if sim:
+            img_node = _make_image_node(sim.group(1), pictures, pic_idx, doc, images)
+            if img_node:
+                blocks.append(img_node)
+            pic_idx += 1
+            i += 1
+            continue
+
+        # Heading
         hm = _MD_HEADING_RE.match(stripped)
         if hm:
             level = min(len(hm.group(1)), 6)
@@ -175,7 +261,7 @@ def _tiptap_via_markdown(doc) -> tuple[dict, list[dict]]:
             i += 1
             continue
 
-        # Table: collect rows, skip separator lines
+        # Table
         if _MD_TABLE_ROW_RE.match(stripped):
             table_lines: list[str] = []
             while i < len(lines):
@@ -212,13 +298,14 @@ def _tiptap_via_markdown(doc) -> tuple[dict, list[dict]]:
                 })
             continue
 
-        # Paragraph: collect until blank line or block-level element
+        # Paragraph
         para_lines: list[str] = []
         while i < len(lines):
             s = lines[i].strip()
             if not s:
                 break
-            if _MD_HEADING_RE.match(s) or _MD_TABLE_ROW_RE.match(s) or _MD_LIST_RE.match(s):
+            if (_MD_HEADING_RE.match(s) or _MD_TABLE_ROW_RE.match(s) or
+                    _MD_LIST_RE.match(s) or _MD_STANDALONE_IMG_RE.match(s)):
                 break
             para_lines.append(s)
             i += 1
@@ -235,7 +322,131 @@ def _tiptap_via_markdown(doc) -> tuple[dict, list[dict]]:
     if not blocks:
         blocks = [{"type": "paragraph", "attrs": {"blockId": _block_id()}}]
 
-    return {"type": "doc", "content": blocks}, []
+    return {"type": "doc", "content": blocks}, images
+
+
+# ---------------------------------------------------------------------------
+# Header / Footer extraction via python-docx
+# ---------------------------------------------------------------------------
+
+_EMU_TO_PT = 72.0 / 914400.0
+_EDITOR_WIDTH_PX = 816
+
+
+def _extract_docx_header_footer(
+    file_bytes: bytes,
+) -> tuple[list[dict], list[dict], list[dict]]:
+    """Extract header/footer content from a DOCX using python-docx.
+
+    Returns (header_blocks, footer_blocks, images).
+    Images use the same __IMAGE__{filename} placeholder convention.
+    """
+    try:
+        from docx import Document as DocxDocument
+        from docx.oxml.ns import qn
+        import io
+    except ImportError:
+        return [], [], []
+
+    try:
+        docx = DocxDocument(io.BytesIO(file_bytes))
+    except Exception:
+        return [], [], []
+
+    images: list[dict] = []
+
+    def _parse_part(part) -> list[dict]:
+        """Convert a header/footer part's paragraphs to Tiptap blocks."""
+        if part is None:
+            return []
+        blocks: list[dict] = []
+        for para in part.paragraphs:
+            # Collect inline images from this paragraph
+            inline_images = _extract_para_images(para, part, images)
+            for img_node in inline_images:
+                blocks.append(img_node)
+
+            text = para.text.strip()
+            if not text:
+                continue
+            blocks.append({
+                "type": "paragraph",
+                "attrs": {"blockId": _block_id()},
+                "content": [{"type": "text", "text": text}],
+            })
+        return blocks
+
+    def _extract_para_images(para, part, img_list: list) -> list[dict]:
+        """Extract inline images from a paragraph as Tiptap image nodes."""
+        nodes: list[dict] = []
+        try:
+            drawings = para._p.findall(".//" + qn("w:drawing"))
+            for drawing in drawings:
+                # Get image relationship id
+                blip = drawing.find(".//" + qn("a:blip"))
+                if blip is None:
+                    continue
+                r_embed = blip.get(qn("r:embed"))
+                if not r_embed:
+                    continue
+                try:
+                    img_part = part.part.rels[r_embed].target_part
+                    blob = img_part.blob
+                    mime = img_part.content_type or "image/png"
+                except Exception:
+                    continue
+
+                ext = _MIME_EXT.get(mime, ".png")
+                filename = f"docling_img_hf_{len(img_list)}{ext}"
+                img_list.append({"filename": filename, "data": blob, "mime_type": mime})
+
+                attrs: dict = {
+                    "blockId": _block_id(),
+                    "src": f"__IMAGE__{filename}",
+                    "alt": "",
+                    "title": None,
+                }
+
+                # Get display width from EMU extent
+                extent = drawing.find(".//" + qn("wp:extent"))
+                if extent is not None:
+                    cx = extent.get("cx")
+                    if cx:
+                        try:
+                            width_pt = int(cx) * _EMU_TO_PT
+                            # Scale to editor: assume standard page width 468pt (6.5in body)
+                            w_frac = width_pt / 468.0
+                            attrs["width"] = round(min(w_frac, 1.0) * _EDITOR_WIDTH_PX)
+                        except Exception:
+                            pass
+
+                nodes.append({"type": "image", "attrs": attrs})
+        except Exception:
+            pass
+        return nodes
+
+    header_blocks: list[dict] = []
+    footer_blocks: list[dict] = []
+
+    seen_header: set[str] = set()
+    seen_footer: set[str] = set()
+
+    for section in docx.sections:
+        h_blocks = _parse_part(section.header)
+        for b in h_blocks:
+            key = str(b)
+            if key not in seen_header:
+                seen_header.add(key)
+                header_blocks.append(b)
+
+        f_blocks = _parse_part(section.footer)
+        for b in f_blocks:
+            key = str(b)
+            if key not in seen_footer:
+                seen_footer.add(key)
+                footer_blocks.append(b)
+
+    return header_blocks, footer_blocks, images
 
 
 # ---------------------------------------------------------------------------
@@ -256,11 +467,15 @@ def _get_sort_key(item: dict) -> tuple:
     return (page, y_from_top)
 
 
-def _tiptap_via_prov(data: dict) -> tuple[dict, list[dict]]:
+def _tiptap_via_prov(data: dict, doc=None) -> tuple[dict, list[dict]]:
     """Sort ALL items by (page_no, y_from_top) provenance for correct reading order (PDF path)."""
     texts = data.get("texts", [])
     tables = data.get("tables", [])
     pictures = data.get("pictures", [])
+
+    doc_pages = {}
+    if doc and doc.pages:
+        doc_pages = doc.pages
 
     picture_nodes: dict[str, dict] = {}
     images: list[dict] = []
@@ -290,19 +505,31 @@ def _tiptap_via_prov(data: dict) -> tuple[dict, list[dict]]:
 
         images.append({"filename": filename, "data": blob, "mime_type": mime})
 
-        size = image.get("size") or {}
         attrs: dict = {
             "blockId": _block_id(),
             "src": f"__IMAGE__{filename}",
             "alt": "",
             "title": None,
         }
-        w = size.get("width")
-        h = size.get("height")
-        if isinstance(w, (int, float)):
-            attrs["width"] = round(float(w), 1)
-        if isinstance(h, (int, float)):
-            attrs["height"] = round(float(h), 1)
+
+        # Compute scale-correct display width from bbox relative to page width
+        prov_list = pic.get("prov") or []
+        if prov_list and doc_pages:
+            try:
+                prov = prov_list[0]
+                page_no = prov.get("page_no")
+                bbox = prov.get("bbox") or {}
+                page = doc_pages.get(page_no)
+                if page and page.size and page.size.width:
+                    l = float(bbox.get("l", 0))
+                    r = float(bbox.get("r", 0))
+                    origin = bbox.get("coord_origin", "BOTTOMLEFT")
+                    img_w = abs(r - l)
+                    w_frac = img_w / float(page.size.width)
+                    if 0 < w_frac <= 1:
+                        attrs["width"] = round(w_frac * 816)
+            except Exception:
+                pass
 
         picture_nodes[pic_ref] = {"node": {"type": "image", "attrs": attrs}, "prov_item": pic}
 
@@ -322,7 +549,6 @@ def _tiptap_via_prov(data: dict) -> tuple[dict, list[dict]]:
         kind = entry["_kind"]
         item = entry["_item"]
 
-        # Insert page break marker between pages
         prov_list = item.get("prov") or []
         if prov_list:
             page_no = prov_list[0].get("page_no", 0)
@@ -357,7 +583,6 @@ def _tiptap_via_prov(data: dict) -> tuple[dict, list[dict]]:
 # ---------------------------------------------------------------------------
 
 def _map_text_item(item: dict) -> dict | None:
-    """Map a docling text item dict to a Tiptap node."""
     text = (item.get("text") or "").strip()
     if not text:
         return None
@@ -427,7 +652,6 @@ def _map_text_item(item: dict) -> dict | None:
 
 
 def _map_table(item: dict) -> dict | None:
-    """Map a docling table dict to a Tiptap table node."""
     data = item.get("data") or {}
     grid = data.get("grid") or []
     if not grid:
